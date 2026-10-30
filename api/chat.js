@@ -5,7 +5,6 @@ const client = new OpenAI({
 });
 
 export default async function handler(req, res) {
-
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not allowed"
@@ -13,8 +12,7 @@ export default async function handler(req, res) {
   }
 
   try {
-
-    const { message, generateImage } = req.body;
+    const { message, generateImage } = req.body || {};
 
     if (!message) {
       return res.status(400).json({
@@ -23,8 +21,7 @@ export default async function handler(req, res) {
     }
 
     // IMAGE GENERATION
-    if (generateImage) {
-
+    if (generateImage === true) {
       const response = await client.responses.create({
         model: "gpt-5",
         input: message,
@@ -50,10 +47,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // NORMAL CHAT
+    // NORMAL AI CHAT
     const response = await client.responses.create({
       model: "gpt-5",
-      instructions: "You are a helpful AI assistant. Answer clearly and naturally.",
+      instructions:
+        "You are a helpful AI assistant. Answer clearly and naturally.",
       input: message
     });
 
@@ -62,12 +60,10 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-
     console.error("AI ERROR:", error);
 
     return res.status(500).json({
       error: error.message || "The AI could not respond."
     });
-
   }
 }
