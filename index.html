@@ -3,213 +3,258 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My AI</title>
+  <title>My AI Chat</title>
+
   <style>
-    * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
       background: #212121;
       color: white;
+      font-family: Arial, sans-serif;
       height: 100vh;
       display: flex;
       flex-direction: column;
     }
+
     header {
-      height: 60px;
-      display: flex;
-      align-items: center;
-      padding: 0 20px;
-      border-bottom: 1px solid #333;
-      font-size: 18px;
+      padding: 16px;
+      border-bottom: 1px solid #444;
+      font-size: 20px;
       font-weight: bold;
     }
+
     #chat {
       flex: 1;
       overflow-y: auto;
-      padding: 30px 20px 120px;
-    }
-    .message {
-      max-width: 800px;
-      margin: 0 auto 20px;
-      display: flex;
-      gap: 15px;
-      line-height: 1.5;
-    }
-    .avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: #444;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      font-size: 11px;
-    }
-    .text {
-      white-space: pre-wrap;
-      padding-top: 5px;
-    }
-    .generated-image {
-      max-width: 500px;
-      width: 100%;
-      border-radius: 12px;
-    }
-    .input-area {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
       padding: 20px;
-      background: linear-gradient(transparent, #212121 25%);
     }
-    .input-box {
-      max-width: 800px;
-      margin: auto;
+
+    .message {
+      padding: 12px 16px;
+      margin: 10px auto;
+      max-width: 700px;
+      border-radius: 12px;
+      white-space: pre-wrap;
+    }
+
+    .user {
+      background: #343541;
+    }
+
+    .ai {
+      background: #2b2b2b;
+    }
+
+    #inputArea {
       display: flex;
       gap: 8px;
-      background: #2f2f2f;
-      border: 1px solid #555;
-      border-radius: 15px;
-      padding: 8px;
+      padding: 15px;
+      max-width: 700px;
+      width: calc(100% - 30px);
+      margin: auto;
     }
+
     textarea {
       flex: 1;
-      resize: none;
-      border: none;
-      outline: none;
-      background: transparent;
+      background: #303030;
       color: white;
+      border: 1px solid #555;
+      border-radius: 10px;
+      padding: 12px;
       font-size: 16px;
-      padding: 10px;
-      height: 45px;
-      font-family: inherit;
+      resize: none;
     }
+
     button {
-      width: 45px;
-      height: 45px;
       border: none;
       border-radius: 10px;
-      background: white;
-      color: black;
+      padding: 0 15px;
+      font-size: 20px;
       cursor: pointer;
-      font-size: 18px;
     }
-    button:hover { background: #ddd; }
-    button:disabled { opacity: 0.5; cursor: wait; }
   </style>
 </head>
 
 <body>
-<header>My AI</header>
 
-<main id="chat">
-  <div class="message">
-    <div class="avatar">AI</div>
-    <div class="text">Hi! I'm your AI assistant. Ask me something or use 🖼️ to generate an image.</div>
-  </div>
-</main>
+<header>My AI Chat</header>
 
-<div class="input-area">
-  <div class="input-box">
-    <textarea id="messageInput" placeholder="Message My AI..."></textarea>
-    <button id="imageButton" title="Generate image">🖼️</button>
-    <button id="sendButton" title="Send">↑</button>
+<div id="chat">
+  <div class="message ai">
+    Hi! I'm your AI assistant. How can I help?
   </div>
 </div>
 
+<div id="inputArea">
+  <textarea id="message" placeholder="Message your AI..." rows="1"></textarea>
+
+  <button onclick="generateImage()">🖼️</button>
+
+  <button onclick="sendMessage()">↑</button>
+</div>
+
 <script>
-const chat = document.getElementById("chat");
-const input = document.getElementById("messageInput");
-const button = document.getElementById("sendButton");
-const imageButton = document.getElementById("imageButton");
+
+const API_URL = "/api/chat";
 
 function addMessage(text, type) {
+
   const message = document.createElement("div");
-  message.className = "message";
 
-  const avatar = document.createElement("div");
-  avatar.className = "avatar";
-  avatar.textContent = type === "user" ? "You" : "AI";
+  message.className = "message " + type;
 
-  const content = document.createElement("div");
-  content.className = "text";
-  content.textContent = text;
+  message.textContent = text;
 
-  message.appendChild(avatar);
-  message.appendChild(content);
-  chat.appendChild(message);
-  chat.scrollTop = chat.scrollHeight;
+  document.getElementById("chat").appendChild(message);
+
+  document.getElementById("chat").scrollTop =
+    document.getElementById("chat").scrollHeight;
 }
 
-function addImage(imageData) {
-  const message = document.createElement("div");
-  message.className = "message";
 
-  const avatar = document.createElement("div");
-  avatar.className = "avatar";
-  avatar.textContent = "AI";
+async function sendMessage() {
 
-  const image = document.createElement("img");
-  image.className = "generated-image";
-  image.src = imageData;
-  image.alt = "AI generated image";
+  const input = document.getElementById("message");
 
-  message.appendChild(avatar);
-  message.appendChild(image);
-  chat.appendChild(message);
-  chat.scrollTop = chat.scrollHeight;
-}
+  const text = input.value.trim();
 
-async function sendMessage(generateImage = false) {
-  const message = input.value.trim();
-  if (!message) return;
+  if (!text) return;
 
-  addMessage(message, "user");
+  addMessage(text, "user");
+
   input.value = "";
-  button.disabled = true;
-  imageButton.disabled = true;
+
+  const thinking = document.createElement("div");
+
+  thinking.className = "message ai";
+
+  thinking.textContent = "Thinking...";
+
+  document.getElementById("chat").appendChild(thinking);
 
   try {
-    const response = await fetch("/api/chat", {
+
+    const response = await fetch(API_URL, {
+
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
       body: JSON.stringify({
-        message: message,
-        generateImage: generateImage
+        message: text,
+        generateImage: false
       })
+
     });
 
     const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || "Something went wrong.");
-    }
+    thinking.remove();
 
-    if (data.image) {
-      addImage(data.image);
-    } else if (data.reply) {
+    if (data.reply) {
       addMessage(data.reply, "ai");
+    } else {
+      addMessage(data.error || "Something went wrong.", "ai");
     }
-  } catch (error) {
-    addMessage("Error: " + error.message, "ai");
-  }
 
-  button.disabled = false;
-  imageButton.disabled = false;
-  input.focus();
+  } catch (error) {
+
+    thinking.textContent =
+      "The AI server could not be reached.";
+
+  }
 }
 
-button.addEventListener("click", () => sendMessage(false));
-imageButton.addEventListener("click", () => sendMessage(true));
 
-input.addEventListener("keydown", (event) => {
-  if (event.key === "Enter" && !event.shiftKey) {
-    event.preventDefault();
-    sendMessage(false);
+async function generateImage() {
+
+  const input = document.getElementById("message");
+
+  const text = input.value.trim();
+
+  if (!text) return;
+
+  addMessage("🖼️ " + text, "user");
+
+  input.value = "";
+
+  const thinking = document.createElement("div");
+
+  thinking.className = "message ai";
+
+  thinking.textContent = "Generating image...";
+
+  document.getElementById("chat").appendChild(thinking);
+
+  try {
+
+    const response = await fetch(API_URL, {
+
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        message: text,
+        generateImage: true
+      })
+
+    });
+
+    const data = await response.json();
+
+    thinking.remove();
+
+    if (data.image) {
+
+      const image = document.createElement("img");
+
+      image.src = data.image;
+
+      image.style.maxWidth = "700px";
+      image.style.width = "100%";
+      image.style.borderRadius = "12px";
+
+      document.getElementById("chat").appendChild(image);
+
+    } else {
+
+      addMessage(
+        data.error || "The image could not be generated.",
+        "ai"
+      );
+
+    }
+
+  } catch (error) {
+
+    thinking.textContent =
+      "The image server could not be reached.";
+
   }
-});
+}
+
+
+document.getElementById("message").addEventListener(
+  "keydown",
+  function(event) {
+
+    if (event.key === "Enter" && !event.shiftKey) {
+
+      event.preventDefault();
+
+      sendMessage();
+
+    }
+
+  }
+);
+
 </script>
+
 </body>
 </html>
