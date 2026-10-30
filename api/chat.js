@@ -1,4 +1,3 @@
-chat.js
 import OpenAI from "openai";
 
 const client = new OpenAI({
@@ -6,6 +5,7 @@ const client = new OpenAI({
 });
 
 export default async function handler(req, res) {
+
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not allowed"
@@ -13,6 +13,7 @@ export default async function handler(req, res) {
   }
 
   try {
+
     const { message, generateImage } = req.body;
 
     if (!message) {
@@ -21,7 +22,9 @@ export default async function handler(req, res) {
       });
     }
 
+    // IMAGE GENERATION
     if (generateImage) {
+
       const response = await client.responses.create({
         model: "gpt-5",
         input: message,
@@ -47,10 +50,10 @@ export default async function handler(req, res) {
       });
     }
 
+    // NORMAL CHAT
     const response = await client.responses.create({
       model: "gpt-5",
-      instructions:
-        "You are a helpful, friendly AI assistant. Answer clearly and naturally.",
+      instructions: "You are a helpful AI assistant. Answer clearly and naturally.",
       input: message
     });
 
@@ -59,10 +62,12 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error(error);
+
+    console.error("AI ERROR:", error);
 
     return res.status(500).json({
-      error: "The AI could not respond."
+      error: error.message || "The AI could not respond."
     });
+
   }
 }
